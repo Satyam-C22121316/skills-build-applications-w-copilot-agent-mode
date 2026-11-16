@@ -30,20 +30,29 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 
 Record your plan here before editing code.
 
-- Presentation tier decision:
-- Logic tier decision:
-- Data tier decision:
-- Activity tracking approach:
-- Team management approach:
-- Leaderboard approach:
-- Workout suggestions approach:
+- Presentation tier decision: Use React hooks (useState, useEffect) + Bootstrap components for UI; client.ts handles all API calls
+- Logic tier decision: Use Express error middleware for centralized error handling; services contain all business logic
+- Data tier decision: Use Mongoose schema validation with required field constraints; seed.ts provides test data
+- Activity tracking approach: Validate user/team IDs exist before creating; compute points server-side based on activity type/minutes
+- Team management approach: POST requires name field; return 400 if missing; populate members array with User references
+- Leaderboard approach: Aggregate activities by team using $group, sum points, sort by totalPoints descending, add 1-based rank
+- Workout suggestions approach: Find user by email, match Workout.focus to User.fitnessGoal, provide reason explaining match
 
 ## Test plan
 
 Record the commands you run and what each failure means.
 
 - Data-tier command: `npm run test:data --prefix octofit-tracker/backend`
+  - Validates Mongoose schemas have required field constraints; failure means models don't reject empty objects with validation errors
+
 - API command: `npm run test:api --prefix octofit-tracker/backend`
+  - Validates endpoints return correct HTTP status codes (201 for success, 400 for validation errors, 404 for not found); failure means services lack business logic or error handling
+
 - Frontend command: `npm test --prefix octofit-tracker/frontend`
+  - Validates React components render API data, show meaningful empty states, and display error alerts; failure means components aren't implemented yet
+
 - Backend build command: `npm run build --prefix octofit-tracker/backend`
+  - Validates TypeScript compiles without errors; failure means type errors in source code
+
 - Frontend build command: `npm run build --prefix octofit-tracker/frontend`
+  - Validates Vite bundles React code without errors; failure means TypeScript or JSX errors in components
