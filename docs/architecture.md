@@ -30,20 +30,40 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 
 Record your plan here before editing code.
 
-- Presentation tier decision:
-- Logic tier decision:
-- Data tier decision:
-- Activity tracking approach:
-- Team management approach:
-- Leaderboard approach:
-- Workout suggestions approach:
+- **Presentation tier decision**: Use React hooks (useState, useEffect) + Bootstrap components for UI; `src/api/client.ts` handles all API calls; each capability page shows loading/empty/error/success states
+- **Logic tier decision**: Use Express error middleware for centralized error handling; services contain all business logic; return deliberate 4xx for invalid input (never 500 from cast errors)
+- **Data tier decision**: Use Mongoose schema validation with required field constraints and type safety; `src/scripts/seed.ts` provides test data with upserts for stable fixtures
+- **Activity tracking approach**: Validate userId and teamId reference existing documents before creating; compute points server-side based on activity type (run=1pt/min, bike=0.75pt/min, swim=1.5pt/min); reject malformed IDs with 400
+- **Team management approach**: POST requires name field; return 400 if missing; populate members array with User references; teams can exist without members
+- **Leaderboard approach**: Aggregate activities by team using MongoDB $group, sum points per team, sort by totalPoints descending, add 1-based rank in memory
+- **Workout suggestions approach**: Find user by exact email match, return 404 if not found; select first Workout.focus matching User.fitnessGoal; include reason field explaining the recommendation
 
 ## Test plan
 
 Record the commands you run and what each failure means.
 
-- Data-tier command: `npm run test:data --prefix octofit-tracker/backend`
-- API command: `npm run test:api --prefix octofit-tracker/backend`
-- Frontend command: `npm test --prefix octofit-tracker/frontend`
-- Backend build command: `npm run build --prefix octofit-tracker/backend`
-- Frontend build command: `npm run build --prefix octofit-tracker/frontend`
+- **Data contract**: `npm test --prefix octofit-tracker/backend`
+  - Validates Mongoose schemas enforce required fields and reject invalid data; passing test means models accept valid seed data
+  - Failure indicates missing field validation in model definitions
+
+- **API contract**: `npm test --prefix octofit-tracker/backend`
+  - Validates endpoints return 201 for successful POST, 400 for validation errors (invalid IDs, missing fields), 404 for not found, 200 for GET
+  - Each endpoint tests: happy path (valid request), validation error (missing/invalid field), not-found (ID doesn't exist)
+  - Failure means services lack input validation or error handling middleware
+
+- **Presentation contract**: `npm test --prefix octofit-tracker/frontend`
+  - Validates React components render API data, announce loading states with role="status", show empty states with meaningful text, display error alerts with role="alert"
+  - Each route (`/activities`, `/teams`, `/leaderboard`, `/workouts`) tested for all 4 states: loading, empty, success (data rendered), error
+  - Specific tests: activities page shows activity type (e.g., "run"), teams show team name (e.g., "Octocats"), leaderboard shows points, workouts fetch with user email
+  - Failure indicates component not implemented, missing useEffect to fetch data, or state not rendered
+
+- **Backend build**: `npm run build --prefix octofit-tracker/backend`
+  - Validates TypeScript compiles without type errors; indicates missing type annotations or incorrect API responses
+
+- **Frontend build**: `npm run build --prefix octofit-tracker/frontend`
+  - Validates Vite bundles React code; indicates TypeScript/JSX syntax errors or missing imports
+
+**Test execution order** (safety: data→API→build→presentation):
+1. `npm test --prefix octofit-tracker/backend` — ensures database models are sound
+2. `npm run build --prefix octofit-tracker/backend` — ensures no TypeScript errors before running API tests
+3. `npm test --prefix octofit-tracker/frontend` — presentation tests already mocked, no backend needed
